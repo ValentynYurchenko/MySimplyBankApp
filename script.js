@@ -265,12 +265,46 @@ const updateUi = function (account) {
   displayTotal(account);
 };
 
-let currentAccount;
+let currentAccount, currentLogOutTimer;
 
 ///////// Always logged in /////////
 // currentAccount = account1;
 // updateUi(currentAccount);
 // containerApp.style.opacity = 100;
+
+const startLogoutTimer = function () {
+  const logOutTimerCallback = function () {
+    const minutes = String(Math.trunc(time / 60)).padStart(2, '0');
+    const seconds = String(time % 60).padStart(2, '0');
+    // In each call, show the remaining time in the user interface
+    labelTimer.textContent = `${minutes}:${seconds}`;
+
+    // After the time expires, stop the timer and exit the application
+    if (time === 0) {
+      clearInterval(logOutTimer);
+      containerApp.style.opacity = 0;
+      labelWelcome.textContent = 'Войдите в свой аккаунт';
+      inputLoginUsername.value = '';
+      inputLoginPin.value = '';
+      inputTransferTo.value = '';
+      inputTransferAmount.value = '';
+      inputLoanAmount.value = '';
+      inputCloseNickname.value = '';
+      inputClosePin.value = '';
+    }
+
+    time--;
+  };
+
+  // Set exit time after 5 minutes
+  let time = 300;
+
+  // Call timer every second
+  logOutTimerCallback();
+  const logOutTimer = setInterval(logOutTimerCallback, 1000);
+
+  return logOutTimer;
+};
 
 // Event Handlers
 
@@ -317,6 +351,11 @@ btnLogin.addEventListener('click', function (e) {
     inputLoginPin.value = '';
     inputLoginPin.blur();
 
+    // Check if the timer exists
+    if (currentLogOutTimer) clearInterval(currentLogOutTimer);
+
+    currentLogOutTimer = startLogoutTimer();
+
     updateUi(currentAccount);
   }
 });
@@ -349,6 +388,10 @@ btnTransfer.addEventListener('click', function (e) {
     recipientAccount.transactionsDates.push(new Date().toISOString());
 
     updateUi(currentAccount);
+
+    // Reset the timer
+    clearInterval(currentLogOutTimer);
+    currentLogOutTimer = startLogoutTimer();
   }
 });
 
@@ -385,12 +428,17 @@ btnLoan.addEventListener('click', function (e) {
     loanAmount > 0 &&
     currentAccount.transactions.some(trans => trans >= loanAmount * 0.1)
   ) {
-    currentAccount.transactions.push(loanAmount);
-    currentAccount.transactionsDates.push(new Date().toISOString());
-    updateUi(currentAccount);
+    setTimeout(function () {
+      currentAccount.transactions.push(loanAmount);
+      currentAccount.transactionsDates.push(new Date().toISOString());
+      updateUi(currentAccount);
+    }, 5000);
   }
-
   inputLoanAmount.value = '';
+
+  // Reset the timer
+  clearInterval(currentLogOutTimer);
+  currentLogOutTimer = startLogoutTimer();
 });
 
 //////////////////////////////////////////////////////////
